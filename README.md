@@ -1,241 +1,277 @@
-This is the reference code for [CryptoNote](https://cryptonote.org) cryptocurrency protocol.
+# Covert Audio - Secure Message Communication
 
-* Launch your own CryptoNote currency: [CryptoNote Starter](https://cryptonotestarter.org/)
-* CryptoNote reference implementation: [CryptoNoteCoin](https://cryptonote-coin.org)
-* Discussion board and support: [CryptoNote Forum](https://forum.cryptonote.org)
+A Flutter mobile application for covert message communication using audio steganography and AES-256-GCM encryption. This app allows users to securely hide encrypted messages inside audio files using advanced cryptographic techniques.
 
-## CryptoNote forking how-to
+## 🔐 Features
 
-### Preparation
+### Core Security
+- **AES-256-GCM Encryption** with integrity verification
+- **PBKDF2 Key Derivation** (SHA-256, 100,000 iterations, 16-byte salt)
+- **LSB Steganography** for WAV files with 4-byte message length headers
+- **Biometric Authentication** (Fingerprint/Face ID) for vault access
+- **Secure Storage** using flutter_secure_storage
 
-1. Create an account on [GitHub.com](github.com)
-2. Fork [CryptoNote repository](https://github.com/cryptonotefoundation/cryptonote)
-3. Buy one or two Ubuntu-based dedicated servers (at least 2Gb of RAM) for seed nodes.
+### Audio Processing
+- **WAV File Support** with comprehensive header parsing
+- **Audio Recording** with high-quality settings (44.1kHz, 16-bit)
+- **Playback Controls** with seek, pause, and progress tracking
+- **Waveform Visualization** and analysis
+- **Message Capacity Calculation** for optimal embedding
 
+### User Experience
+- **Material 3 Design** with comprehensive theming
+- **Dark Mode Support** with automatic system detection
+- **Intuitive Navigation** with bottom tab bar
+- **Comprehensive Error Handling** with user-friendly messages
+- **Progress Indicators** for long-running operations
 
+### Vault System
+- **Encrypted File Storage** with metadata tracking
+- **Search and Sort** functionality
+- **File Sharing** capabilities
+- **Storage Usage** monitoring
+- **Biometric Protection** for sensitive operations
 
-### First step. Give a name to your coin
+## 📱 Screenshots
 
-**Good name must be unique.** Check uniqueness with [google](http://google.com) and [Map of Coins](mapofcoins.com) or any other similar service.
+*Screenshots will be added after UI implementation*
 
-Name must be specified twice:
+## 🏗️ Architecture
 
-**1. in file src/CryptoNoteConfig.h** - `CRYPTONOTE_NAME` constant
+### Core Modules
 
-Example: 
-```
-const char CRYPTONOTE_NAME[] = "furiouscoin";
-```
+#### 1. Encryption Module (`lib/core/encryption/`)
+- **Algorithm**: AES-256-GCM for confidentiality and integrity
+- **Key Derivation**: PBKDF2 with SHA-256, 100,000 iterations
+- **Output Format**: base64(salt + nonce + ciphertext + mac)
 
-**2. in src/CMakeList.txt file** - set_property(TARGET daemon PROPERTY OUTPUT_NAME "YOURCOINNAME**d**")
+#### 2. Steganography Module (`lib/core/steganography/`)
+- **Format**: WAV files (lossless audio)
+- **Technique**: Least Significant Bit (LSB) embedding
+- **Header**: 4-byte big-endian message length
+- **Capacity**: Automatic calculation based on audio file size
 
-Example: 
-```
-set_property(TARGET daemon PROPERTY OUTPUT_NAME "furiouscoind")
-```
+#### 3. Audio Handling (`lib/core/services/audio_service.dart`)
+- **Recording**: flutter_sound with configurable quality
+- **Playback**: Multiple audio players for compatibility
+- **Analysis**: Comprehensive audio file analysis
+- **Formats**: WAV support with future extensibility
 
-**Note:** You should also change a repository name.
+#### 4. Security Services
+- **Biometric Service**: Local authentication with fallback
+- **Secure Storage**: Encrypted local storage for vault items
+- **Session Management**: Automatic timeout and re-authentication
 
+### UI Architecture
 
-### Second step. Emission logic 
+#### Screens
+1. **Splash Screen**: Animated loading with authentication check
+2. **Authentication Screen**: Biometric and password authentication
+3. **Home Screen**: Bottom navigation with four main tabs
+4. **Embed Message Screen**: Complete message embedding workflow
+5. **Extract Message Screen**: Message extraction with authentication
+6. **Vault Screen**: Secure file management
+7. **Settings Screen**: App configuration and security settings
 
-**1. Total money supply** (src/CryptoNoteConfig.h)
+#### Custom Widgets
+- **SecureTextField**: Enhanced password input with strength indicator
+- **AudioPlayerWidget**: Full-featured audio playback controls
+- **WaveformWidget**: Audio visualization components
+- **ProgressDialog**: Loading dialogs for operations
+- **AnimatedLogo**: Animated branding elements
 
-Total amount of coins to be emitted. Most of CryptoNote based coins use `(uint64_t)(-1)` (equals to 18446744073709551616). You can define number explicitly (for example `UINT64_C(858986905600000000)`).
+## 🚀 Getting Started
 
-Example:
-```
-const uint64_t MONEY_SUPPLY = (uint64_t)(-1);
-```
+### Prerequisites
+- Flutter SDK (>=3.10.0)
+- Dart SDK (>=3.0.0)
+- Android Studio / Xcode for platform-specific development
+- Device with microphone for audio recording
+- Device with biometric authentication (optional)
 
-**2. Emission curve** (src/CryptoNoteConfig.h)
+### Installation
 
-Be default CryptoNote provides emission formula with slight decrease of block reward with each block. This is different from Bitcoin where block reward halves every 4 years.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/covert-audio.git
+   cd covert-audio
+   ```
 
-`EMISSION_SPEED_FACTOR` constant defines emission curve slope. This parameter is required to calulate block reward. 
+2. **Install dependencies**
+   ```bash
+   flutter pub get
+   ```
 
-Example:
-```
-const unsigned EMISSION_SPEED_FACTOR = 18;
-```
+3. **Configure platform permissions**
+   
+   **Android**: Permissions are already configured in `android/app/src/main/AndroidManifest.xml`
+   
+   **iOS**: Permissions are already configured in `ios/Runner/Info.plist`
 
-**3. Difficulty target** (src/CryptoNoteConfig.h)
+4. **Run the application**
+   ```bash
+   flutter run
+   ```
 
-Difficulty target is an ideal time period between blocks. In case an average time between blocks becomes less than difficulty target, the difficulty increases. Difficulty target is measured in seconds.
+### Building for Release
 
-Difficulty target directly influences several aspects of coin's behavior:
-
-- transaction confirmation speed: the longer the time between the blocks is, the slower transaction confirmation is
-- emission speed: the longer the time between the blocks is the slower the emission process is
-- orphan rate: chains with very fast blocks have greater orphan rate
-
-For most coins difficulty target is 60 or 120 seconds.
-
-Example:
-```
-const uint64_t DIFFICULTY_TARGET = 120;
-```
-
-**4. Block reward formula**
-
-In case you are not satisfied with CryptoNote default implementation of block reward logic you can also change it. The implementation is in `src/CryptoNoteCore/Currency.cpp`:
-```
-bool Currency::getBlockReward(size_t medianSize, size_t currentBlockSize, uint64_t alreadyGeneratedCoins, uint64_t fee, uint64_t& reward, int64_t& emissionChange) const
-```
-
-This function has two parts:
-
-- basic block reward calculation: `uint64_t baseReward = (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;`
-- big block penalty calculation: this is the way CryptoNote protects the block chain from transaction flooding attacks and preserves opportunities for organic network growth at the same time.
-
-Only the first part of this function is directly related to the emission logic. You can change it the way you want. See MonetaVerde and DuckNote as the examples where this function is modified.
-
-
-### Third step. Networking
-
-**1. Default ports for P2P and RPC networking** (src/CryptoNoteConfig.h)
-
-P2P port is used by daemons to talk to each other through P2P protocol.
-RPC port is used by wallet and other programs to talk to daemon.
-
-It's better to choose ports that aren't used by other software or coins. See known TCP ports lists:
-
-* http://www.speedguide.net/ports.php
-* http://www.networksorcery.com/enp/protocol/ip/ports00000.htm
-* http://keir.net/portlist.html
-
-Example:
-```
-const int P2P_DEFAULT_PORT = 17236;
-const int RPC_DEFAULT_PORT = 18236;
-```
-
-
-**2. Network identifier** (src/P2p/P2pNetworks.h)
-
-This identifier is used in network packages in order not to mix two different cryptocoin networks. Change all the bytes to random values for your network:
-```
-const static boost::uuids::uuid CRYPTONOTE_NETWORK = { { 0xA1, 0x1A, 0xA1, 0x1A, 0xA1, 0x0A, 0xA1, 0x0A, 0xA0, 0x1A, 0xA0, 0x1A, 0xA0, 0x1A, 0xA1, 0x1A } };
-```
-
-
-**3. Seed nodes** (src/CryptoNoteConfig.h)
-
-Add IP addresses of your seed nodes.
-
-Example:
-```
-const std::initializer_list<const char*> SEED_NODES = {
-  "111.11.11.11:17236",
-  "222.22.22.22:17236",
-};
+#### Android
+```bash
+flutter build apk --release
+# or for app bundle
+flutter build appbundle --release
 ```
 
-
-### Fourth step. Transaction fee and related parameters
-
-**1. Minimum transaction fee** (src/CryptoNoteConfig.h)
-
-Zero minimum fee can lead to transaction flooding. Transactions cheaper than the minimum transaction fee wouldn't be accepted by daemons. 100000 value for `MINIMUM_FEE` is usually enough.
-
-Example:
-```
-const uint64_t MINIMUM_FEE = 100000;
+#### iOS
+```bash
+flutter build ios --release
 ```
 
+## 🔧 Configuration
 
-**2. Penalty free block size** (src/CryptoNoteConfig.h)
+### Audio Settings
+- **Sample Rate**: 44.1 kHz (configurable in `app_config.dart`)
+- **Bit Depth**: 16-bit
+- **Channels**: Mono for recording, supports stereo playback
+- **Format**: WAV (lossless)
 
-CryptoNote protects chain from tx flooding by reducing block reward for blocks larger than the median block size. However, this rule applies for blocks larger than `CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE` bytes.
+### Security Settings
+- **Encryption**: AES-256-GCM
+- **Key Derivation**: PBKDF2 (100,000 iterations)
+- **Salt Length**: 16 bytes
+- **Nonce Length**: 12 bytes (GCM standard)
 
-Example:
-```
-const size_t CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE = 20000;
-```
+### Session Management
+- **Timeout**: 15 minutes (configurable)
+- **Max Password Attempts**: 3
+- **Biometric Fallback**: Password authentication
 
+## 📚 Usage
 
-### Fifth step. Address prefix
+### Embedding a Message
 
-You may choose a letter (in some cases several letters) all the coin's public addresses will start with. It is defined by `CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX` constant. Since the rules for address prefixes are nontrivial you may use the [prefix generator tool](https://cryptonotestarter.org/tools.html).
+1. **Select Audio**: Choose a WAV file or record new audio
+2. **Enter Message**: Type your secret message
+3. **Set Password**: Choose a strong encryption password
+4. **Embed**: The app encrypts and hides the message in the audio
+5. **Save to Vault**: Encrypted stego file is saved securely
 
-Example:
-```
-const uint64_t CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0xe9; // addresses start with "f"
-```
+### Extracting a Message
 
+1. **Select Stego Audio**: Choose an audio file with hidden message
+2. **Enter Password**: Provide the decryption password
+3. **Authenticate**: Use biometric or password authentication
+4. **Extract**: The app decrypts and reveals the hidden message
 
-### Sixth step. Genesis block
+### Vault Management
 
-**1. Build the binaries with blank genesis tx hex** (src/CryptoNoteConfig.h)
+- **View Files**: Browse all stored stego audio files
+- **Search**: Find files by name or description
+- **Sort**: Organize by date, size, or name
+- **Share**: Export files securely
+- **Delete**: Remove files permanently
 
-You should leave `const char GENESIS_COINBASE_TX_HEX[]` blank and compile the binaries without it.
+## 🔒 Security Considerations
 
-Example:
-```
-const char GENESIS_COINBASE_TX_HEX[] = "";
-```
+### Encryption
+- Uses industry-standard AES-256-GCM encryption
+- PBKDF2 key derivation with high iteration count
+- Cryptographically secure random number generation
+- Integrity verification with GCM authentication
 
+### Steganography
+- LSB technique minimizes audio quality impact
+- Message length header prevents detection attempts
+- Capacity calculation prevents overflow
+- Support for error detection and correction
 
-**2. Start the daemon to print out the genesis block**
+### Storage
+- All sensitive data encrypted at rest
+- Biometric authentication for vault access
+- Secure key management
+- Session timeout for security
 
-Run your daemon with `--print-genesis-tx` argument. It will print out the genesis block coinbase transaction hash.
+### Privacy
+- No network communication for core functionality
+- Local processing of all sensitive data
+- Optional cloud sync with zero-knowledge encryption
+- No telemetry or analytics collection
 
-Example:
-```
-furiouscoind --print-genesis-tx
-```
+## 🧪 Testing
 
-
-**3. Copy the printed transaction hash** (src/CryptoNoteConfig.h)
-
-Copy the tx hash that has been printed by the daemon to `GENESIS_COINBASE_TX_HEX` in `src/CryptoNoteConfig.h`
-
-Example:
-```
-const char GENESIS_COINBASE_TX_HEX[] = "013c01ff0001ffff...785a33d9ebdba68b0";
-```
-
-
-**4. Recompile the binaries**
-
-Recompile everything again. Your coin code is ready now. Make an announcement for the potential users and enjoy!
-
-
-## Building CryptoNote 
-
-### On *nix
-
-Dependencies: GCC 4.7.3 or later, CMake 2.8.6 or later, and Boost 1.55.
-
-You may download them from:
-
-* http://gcc.gnu.org/
-* http://www.cmake.org/
-* http://www.boost.org/
-* Alternatively, it may be possible to install them using a package manager.
-
-To build, change to a directory where this file is located, and run `make`. The resulting executables can be found in `build/release/src`.
-
-**Advanced options:**
-
-* Parallel build: run `make -j<number of threads>` instead of `make`.
-* Debug build: run `make build-debug`.
-* Test suite: run `make test-release` to run tests in addition to building. Running `make test-debug` will do the same to the debug version.
-* Building with Clang: it may be possible to use Clang instead of GCC, but this may not work everywhere. To build, run `export CC=clang CXX=clang++` before running `make`.
-
-### On Windows
-Dependencies: MSVC 2013 or later, CMake 2.8.6 or later, and Boost 1.55. You may download them from:
-
-* http://www.microsoft.com/
-* http://www.cmake.org/
-* http://www.boost.org/
-
-To build, change to a directory where this file is located, and run theas commands: 
-```
-mkdir build
-cd build
-cmake -G "Visual Studio 12 Win64" ..
+### Unit Tests
+```bash
+flutter test
 ```
 
-And then do Build.
-Good luck!
+### Integration Tests
+```bash
+flutter test integration_test/
+```
+
+### Security Testing
+- Encryption/decryption validation
+- Steganography capacity testing
+- Authentication flow testing
+- Storage security verification
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow Flutter/Dart style guidelines
+- Add tests for new features
+- Update documentation
+- Ensure security best practices
+- Test on both Android and iOS
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔮 Future Enhancements
+
+### Planned Features
+- **Multi-Layer Steganography**: Combine audio with image/video layers
+- **Error Correction Codes**: Reed-Solomon or Hamming codes for reliability
+- **MP3 Support**: Advanced LSB strategies for lossy formats
+- **Steganalysis Shield**: Randomized bit-distribution for detection avoidance
+- **Voice-to-Text Embedder**: Speech recognition for message input
+- **Desktop Companion**: Cross-platform sync and management
+- **Cloud Vault Sync**: Zero-knowledge encrypted backup
+- **Waveform Editor**: Visual embedding location selection
+- **Plugin Marketplace**: Additional steganography techniques
+- **Audio Watermarking**: Copyright and origin signatures
+- **Real-Time Stego**: Live audio stream embedding
+
+### Technical Improvements
+- **Performance Optimization**: Large file handling
+- **Battery Optimization**: Background processing
+- **Accessibility**: Screen reader support
+- **Internationalization**: Multi-language support
+- **Advanced Analytics**: Usage insights (privacy-preserving)
+
+## 📞 Support
+
+For support, questions, or feature requests:
+- Create an issue on GitHub
+- Contact: [your-email@example.com]
+- Documentation: [Wiki/Docs link]
+
+## 🙏 Acknowledgments
+
+- Flutter team for the excellent framework
+- Cryptography library maintainers
+- Audio processing library contributors
+- Security research community
+- Open source community
+
+---
+
+**⚠️ Disclaimer**: This application is for educational and legitimate privacy purposes only. Users are responsible for complying with local laws and regulations regarding encryption and steganography.
+
